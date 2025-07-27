@@ -1,0 +1,69 @@
+task.wait(2) -- wait for GUI to create the animations
+
+-- ✅ Use correct GUI parent for Fluxus
+local parentGui = (gethui and gethui()) or game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+
+-- ✅ Remove old UI if exists
+if parentGui:FindFirstChild("AttackButtonUI") then
+    parentGui.AttackButtonUI:Destroy()
+end
+
+-- ✅ Create Attack button
+local AttackButtonUI = Instance.new("ScreenGui")
+AttackButtonUI.Name = "AttackButtonUI"
+AttackButtonUI.ResetOnSpawn = false
+AttackButtonUI.Parent = parentGui
+
+local AttackButton = Instance.new("TextButton")
+AttackButton.Size = UDim2.new(0, 100, 0, 40)
+AttackButton.Position = UDim2.new(0, 150, 0.5, 0)
+AttackButton.Text = "Attack"
+AttackButton.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
+AttackButton.TextColor3 = Color3.new(1, 1, 1)
+AttackButton.Font = Enum.Font.GothamBold
+AttackButton.TextSize = 18
+AttackButton.AutoButtonColor = true
+AttackButton.Active = true
+AttackButton.Parent = AttackButtonUI
+
+-- ✅ Manual drag support
+local dragging, dragInput, mousePos, framePos = false
+
+AttackButton.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		mousePos = input.Position
+		framePos = AttackButton.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+AttackButton.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+	if dragging and input == dragInput then
+		local delta = input.Position - mousePos
+		AttackButton.Position = UDim2.new(
+			framePos.X.Scale, framePos.X.Offset + delta.X,
+			framePos.Y.Scale, framePos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+-- ✅ Play "Mafiosos hit " animation on click
+AttackButton.MouseButton1Click:Connect(function()
+	local anim = Anims:FindFirstChild("Mafiosos hit ")
+	if anim and Character then
+		PlayAnim(Character, anim, 0.1, 1)
+	else
+		warn("Animation not found: Mafiosos hit ")
+	end
+end)
