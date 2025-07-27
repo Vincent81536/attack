@@ -1,83 +1,75 @@
--- LocalScript inside StarterGui
+task.wait(5) -- longer wait to ensure GUI loads
 
-
-
--- Wait for player
-
-local player = game.Players.LocalPlayer
-
-
-
--- Create ScreenGui
-
-local screenGui = Instance.new("ScreenGui")
-
-screenGui.Name = "AttackGui"
-
-screenGui.ResetOnSpawn = true -- This ensures it resets on death
-
-screenGui.Parent = player:WaitForChild("PlayerGui")
-
-
-
--- Create Attack Button
-
-local attackButton = Instance.new("TextButton")
-
-attackButton.Name = "AttackButton"
-
-attackButton.Size = UDim2.new(0, 120, 0, 40)
-
-attackButton.Position = UDim2.new(0.5, -60, 0.5, -20)
-
-attackButton.BackgroundColor3 = Color3.new(0, 0, 0) -- Black background
-
-attackButton.TextColor3 = Color3.new(1, 1, 1) -- White text
-
-attackButton.Font = Enum.Font.GothamBold
-
-attackButton.TextSize = 18
-
-attackButton.Text = "Attack"
-
-attackButton.Active = true
-
-attackButton.Draggable = true
-
-attackButton.Parent = screenGui
-
-
-
--- Animation setup
-
-local animationId = "rbxassetid://71308482162106"
-
-local hasPlayed = false
-
-
-
-attackButton.MouseButton1Click:Connect(function()
-
-if hasPlayed then return end
-
-hasPlayed = true
-
-
-
-local character = player.Character or player.CharacterAdded:Wait()
-
-local humanoid = character:FindFirstChildOfClass("Humanoid")
-
-if humanoid then
-
-local animation = Instance.new("Animation")
-
-animation.AnimationId = animationId
-
-local track = humanoid:LoadAnimation(animation)
-
-track:Play()
-
+-- fallback parent
+local plr = game:GetService("Players").LocalPlayer
+local parentGui = plr:FindFirstChild("PlayerGui")
+if not parentGui then
+	warn("❌ PlayerGui not found.")
+	return
 end
 
+-- cleanup old
+if parentGui:FindFirstChild("AttackButtonUI") then
+	parentGui.AttackButtonUI:Destroy()
+end
+
+-- create GUI + button
+local AttackButtonUI = Instance.new("ScreenGui")
+AttackButtonUI.Name = "AttackButtonUI"
+AttackButtonUI.ResetOnSpawn = false
+AttackButtonUI.IgnoreGuiInset = true
+AttackButtonUI.Parent = parentGui
+
+local btn = Instance.new("TextButton")
+btn.Size = UDim2.new(0, 120, 0, 45)
+btn.Position = UDim2.new(0, 10, 0.5, 0)
+btn.Text = "Attack"
+btn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+btn.TextColor3 = Color3.new(1, 1, 1)
+btn.Font = Enum.Font.GothamBold
+btn.TextSize = 20
+btn.AutoButtonColor = true
+btn.Parent = AttackButtonUI
+
+-- drag support
+local dragging = false
+local input, startPos, startBtnPos
+
+btn.InputBegan:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		startPos = i.Position
+		startBtnPos = btn.Position
+		i.Changed:Connect(function()
+			if i.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+btn.InputChanged:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseMovement then
+		input = i
+	end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(i)
+	if i == input and dragging then
+		local delta = i.Position - startPos
+		btn.Position = UDim2.new(
+			startBtnPos.X.Scale, startBtnPos.X.Offset + delta.X,
+			startBtnPos.Y.Scale, startBtnPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+-- click = play animation
+btn.MouseButton1Click:Connect(function()
+	local anim = Anims:FindFirstChild("Mafiosos hit ")
+	if anim and Character then
+		PlayAnim(Character, anim, 0.1, 1)
+	else
+		warn("❌ Animation not found!")
+	end
 end)
